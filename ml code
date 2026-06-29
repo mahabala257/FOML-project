@@ -1,0 +1,75 @@
+import os
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Paths to the datasets
+DATASET_PATH = r"C:\Users\Maha\Downloads\my folml\dataset\data-final.csv"
+
+# Check if the dataset file exists
+if not os.path.exists(DATASET_PATH):
+    print(f"Dataset file not found at: {DATASET_PATH}")
+    exit()
+
+# Load the dataset
+data = pd.read_csv(DATASET_PATH, sep="\t")
+
+# Display dataset information
+print("Dataset Overview:")
+print(data.info())
+
+# Select relevant personality trait columns
+personality_traits = ['EXT1', 'AGR1', 'CSN1', 'EST1', 'OPN1']
+data = data[personality_traits]
+
+# Handle missing values
+print("\nChecking for missing values...")
+print(data.isnull().sum())
+data.fillna(data.median(), inplace=True)
+
+# Combine personality traits into a single target variable
+# For simplicity, assign categories based on EXT1 scores as an example
+data['Personality'] = pd.cut(
+    data['EXT1'], bins=[1, 2, 4, 5], labels=["Introvert", "Neutral", "Extrovert"]
+)
+
+# Define features (X) and target (y)
+X = data.drop(columns=["EXT1", "Personality"])
+y = data["Personality"]
+
+# Encode target variable if necessary
+y = y.astype("category").cat.codes  # Converts labels into numerical categories
+
+# Split the dataset
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train the model
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train, y_train)
+
+# Make predictions
+y_pred = model.predict(X_test)
+
+# Evaluate the model
+print("\nModel Performance:")
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+
+# Confusion Matrix Visualization
+conf_matrix = confusion_matrix(y_test, y_pred)
+sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues")
+plt.title("Confusion Matrix")
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.show()
+
+# Interactive prediction (optional)
+print("\nPredict a personality:")
+feature_input = [float(x) for x in input(f"Enter values for {X.columns.tolist()} separated by space: ").split()]
+new_prediction = model.predict([feature_input])
+print("Predicted Personality:", new_prediction[0])
